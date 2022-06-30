@@ -1,6 +1,6 @@
 // 1. patternMatch
 
-function isVariable(x) {
+function isVariable(x: any): boolean {
   return typeof x === "string" && x.startsWith("?");
 }
 
@@ -37,12 +37,12 @@ export function querySingle(pattern, db, context) {
 
 // 3. queryWhere
 
-export function queryWhere(patterns, db) {
+export function queryWhere(patterns, db, ctx={}) {
   return patterns.reduce(
     (contexts, pattern) => {
       return contexts.flatMap((context) => querySingle(pattern, db, context));
     },
-    [{}]
+    [ctx]
   );
 }
 
