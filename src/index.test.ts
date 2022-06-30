@@ -1,14 +1,22 @@
 import relevantTriples from "./exampeTriples";
-import { createDB, matchPattern, query, querySingle, queryWhere } from ".";
+import { createDB, matchPattern, query, querySingle, queryWhere, matchPart } from ".";
 
 const db = createDB(relevantTriples);
+
+test("matchPart", () => {
+    expect(matchPart("?movieId", 200, {})).toEqual({"?movieId": 200})
+    expect(matchPart("movie/director", "movie/director", {})).toEqual({})
+    expect(
+        matchPart("?directorId", 100, {"?movieId": 200})
+    ).toEqual({"?movieId": 200, "?directorId": 100})
+});
 
 test("matchPattern", () => {
   expect(
     matchPattern(
       ["?movieId", "movie/director", "?directorId"],
       [200, "movie/director", 100],
-      { "?movieId": 200 }
+      {  }
     )
   ).toEqual({ "?movieId": 200, "?directorId": 100 });
   expect(
@@ -133,3 +141,16 @@ test("play", () => {
     ])
   );
 });
+
+function onlyUnique(value, index, self) {
+  return self.indexOf(value) === index;
+}
+test("getUniqueAttributes", () => {
+    let res= query({
+        find: ["?attr"],
+        where: [
+            ["?any1", "?attr", "?any2"]
+        ]
+    }, db);
+    console.log(res.flat().filter(onlyUnique));
+})
