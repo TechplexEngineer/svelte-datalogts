@@ -1,6 +1,6 @@
 // 2. querySingle
 
-import {Datom, isVariable, matchPattern, SearchContext} from "./index";
+import {Datom, isVariable, matchPattern, ResultContext, SearchContext} from "./index";
 
 
 // 3. queryWhere
@@ -21,7 +21,7 @@ import sqlite3Driver from 'sqlite3';
 import {open} from 'sqlite';
 import type {Database} from 'sqlite';
 
-class DatalogDb {
+class DatalogDB {
 
     private sqlDb: Database = null;
     private readonly dbFile: string;
@@ -37,25 +37,32 @@ class DatalogDb {
         });
     }
 
-    public query({find, where}: { find: string[], where: Datom[] }, db) {
+    public async query({find, where}: { find: string[], where: Datom[] }): Promise<Array<ResultContext>> {
         if (this.sqlDb == null) {
             throw new Error("Must open database before it can be queried");
         }
-        const contexts = this.queryWhere(where);
+        const contexts = await this.queryWhere(where);
         return contexts.map((context) => actualize(context, find));
     }
 
-    private queryWhere(patterns: Datom[], ctx: SearchContext = {}) {
-        return patterns.reduce(
-            (contexts, pattern) => {
-                return contexts.flatMap((context) => this.querySingle(pattern, context));
-            },
-            [ctx]
-        );
+    private async queryWhere(patterns: Datom[], ctx: SearchContext = {}): Promise<Array<ResultContext>> {
+
+        let contexts = [ctx];
+        for (const pattern of patterns) {
+            contexts.flatMap(async (context) => await this.querySingle(pattern, context))
+        }
+        return contexts;
+
+        // return patterns.reduce(
+        //     async (contexts, pattern: Datom) => {
+        //         return contexts.flatMap(async (context) => await this.querySingle(pattern, context));
+        //     },
+        //     [ctx]
+        // );
     }
 
-    private querySingle(pattern: Datom, context: SearchContext) {
-        return this.relevantTriples(pattern)
+    private async querySingle(pattern: Datom, context: SearchContext) {
+        return (await this.relevantTriples(pattern))
             .map((triple) => matchPattern(pattern, triple, context))
             .filter((x) => x);
     }
@@ -69,24 +76,26 @@ class DatalogDb {
             // return db.entityIndex[id];
         }
         if (!isVariable(attribute)) {
-            let res = await this.sqlDb.get('SELECT * from "datoms" WHERE a = ?', attribute);
+            let res = await this.sqlDb.all('SELECT * from "datoms" WHERE a = ?', attribute);
             // slice throws away the transaction
             return res.map(datom => Object.values(datom).slice(0, 3) as Datom);
             // return db.attrIndex[attribute];
         }
         if (!isVariable(value)) {
-            let res = await this.sqlDb.get('SELECT * from "datoms" WHERE v = ?', value);
+            let res = await this.sqlDb.all('SELECT * from "datoms" WHERE v = ?', value);
             // slice throws away the transaction
             return res.map(datom => Object.values(datom).slice(0, 3) as Datom);
             // return db.valueIndex[value];
         }
         console.log("Falling Back to querying ALL Datoms");
-        let res = await this.sqlDb.get('SELECT * from "datoms"');
+        let res = await this.sqlDb.all('SELECT * from "datoms"');
         // slice throws away the transaction
         return res.map(datom => Object.values(datom).slice(0, 3) as Datom);
         // return db.triples;
     }
 }
+
+export default DatalogDB;
 
 
 // function indexBy(triples, idx) {
