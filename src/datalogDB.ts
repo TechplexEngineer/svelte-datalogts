@@ -20,6 +20,7 @@ function actualize(context, find) {
 import sqlite3Driver from 'sqlite3';
 import {open} from 'sqlite';
 import type {Database} from 'sqlite';
+import {querySingle} from "./memoryDB";
 
 class DatalogDB {
 
@@ -35,6 +36,16 @@ class DatalogDB {
             filename: this.dbFile,
             driver: sqlite3Driver.Database
         });
+
+        //@todo need migration
+        await this.sqlDb.exec(`
+            CREATE TABLE IF NOT EXISTS "datoms" (
+                "e"  INTEGER NOT NULL,
+                "a"  SMALLINT NOT NULL,
+                "v"  BLOB NOT NULL,
+                "tx" INTEGER NOT NULL
+            );
+        `)
     }
 
     public async query({find, where}: { find: string[], where: Datom[] }): Promise<Array<ResultContext>> {
@@ -46,12 +57,30 @@ class DatalogDB {
     }
 
     private async queryWhere(patterns: Datom[], ctx: SearchContext = {}): Promise<Array<ResultContext>> {
+        console.log("queryWhere", patterns, ctx);
+        return patterns.reduce(
+            (contexts, pattern) => {
+                console.log("pattern", pattern);
+                return contexts.flatMap(async (context) => {
+                    const a = await this.querySingle(pattern, context);
+                    console.log("contexts querySingle", a);
+                    return a;
+                });
+            },
+            [ctx]
+        );
 
-        let contexts = [ctx];
-        for (const pattern of patterns) {
-            contexts.flatMap(async (context) => await this.querySingle(pattern, context))
-        }
-        return contexts;
+        // console.log("queryWhere", patterns, ctx);
+        // let contexts = [ctx];
+        // for (const pattern of patterns) {
+        //     console.log("pattern", pattern);
+        //     contexts.flatMap(async (context) => {
+        //         const a = await this.querySingle(pattern, context);
+        //         console.log("contexts querySingle", a);
+        //         return a;
+        //     })
+        // }
+        // return contexts;
 
         // return patterns.reduce(
         //     async (contexts, pattern: Datom) => {

@@ -1,67 +1,62 @@
-import {matchPattern, matchPart} from ".";
-import DatalogDB from "./datalogDB";
-// import sqlite3Driver from 'sqlite3'
-// import {open} from 'sqlite'
 import relevantTriples from "./exampleTriples";
+import {matchPattern, matchPart} from ".";
+import {createDB, query, querySingle, queryWhere} from "./memoryDB";
 
-// test("simple query", async () => {
-//
-//     const db = await open({
-//         filename: 'test.db',
-//         driver: sqlite3Driver.Database
-//     });
-//
-//     let res = await db.all('SELECT * from "datoms" WHERE e = ?', 100);
-//     //                                               slice removes transaction
-//     let data = res.map(datom => Object.values(datom).slice(0, 3))
-//
-//     expect(data).toEqual([
-//         [100, 'person/name', 'James Cameron'],
-//         [100, 'person/born', '1954-08-16T00:00:00Z']
-//     ])
-// });
+const db = createDB(relevantTriples);
 
-let db;
-describe("async sqlite tests", () => {
-    beforeAll(async () => {
-        db = new DatalogDB("test.db");
-        await db.open();
+describe("memorydb", () => {
+    test("matchPart", () => {
+        expect(matchPart("?movieId", 200, {})).toEqual({"?movieId": 200})
+        expect(matchPart("movie/director", "movie/director", {})).toEqual({})
+        expect(
+            matchPart("?directorId", 100, {"?movieId": 200})
+        ).toEqual({"?movieId": 200, "?directorId": 100})
     });
 
+    test("matchPattern", () => {
+        expect(
+            matchPattern(
+                ["?movieId", "movie/director", "?directorId"],
+                [200, "movie/director", 100],
+                {}
+            )
+        ).toEqual({"?movieId": 200, "?directorId": 100});
+        expect(
+            matchPattern(
+                ["?movieId", "movie/director", "?directorId"],
+                [200, "movie/director", 100],
+                {"?movieId": 202}
+            )
+        ).toEqual(null);
+    });
 
-    test("querySingle - find movies with movie/year of 1987", async () => {
-        expect(await db.querySingle(
-            ["?movieId", "movie/year", 1987],
-            {}
-        )).toEqual([
+    test("querySingle", () => {
+        expect(querySingle(["?movieId", "movie/year", 1987], db, {})).toEqual([
             {"?movieId": 202},
             {"?movieId": 203},
             {"?movieId": 204},
         ]);
     });
 
-    test("queryWhere - Find the director of the terminator movie", async () => {
+    test("queryWhere", () => {
         expect(
-            await db.queryWhere(
+            queryWhere(
                 [
                     ["?movieId", "movie/title", "The Terminator"],
                     ["?movieId", "movie/director", "?directorId"],
                     ["?directorId", "person/name", "?directorName"],
                 ],
+                db,
                 {}
             )
         ).toEqual([
-            {
-                "?movieId": 200,
-                "?directorId": 100,
-                "?directorName": "James Cameron"
-            },
+            {"?movieId": 200, "?directorId": 100, "?directorName": "James Cameron"},
         ]);
     });
 
-    test("query", async () => {
+    test("query", () => {
         expect(
-            await db.query(
+            query(
                 {
                     find: ["?directorName"],
                     where: [
@@ -69,25 +64,27 @@ describe("async sqlite tests", () => {
                         ["?movieId", "movie/director", "?directorId"],
                         ["?directorId", "person/name", "?directorName"],
                     ],
-                }
+                },
+                db
             )
         ).toEqual([["James Cameron"]]);
     });
 
-    test("play", async () => {
+    test("play", () => {
         expect(
-            await db.query(
+            query(
                 {
                     find: ["?year"],
                     where: [
                         ["?id", "movie/title", "Alien"],
                         ["?id", "movie/year", "?year"],
                     ],
-                }
+                },
+                db
             )
         ).toEqual([[1979]]);
         expect(
-            await db.query(
+            query(
                 {
                     find: ["?directorName"],
                     where: [
@@ -95,16 +92,18 @@ describe("async sqlite tests", () => {
                         ["?movieId", "movie/director", "?directorId"],
                         ["?directorId", "person/name", "?directorName"],
                     ],
-                }
+                },
+                db
             )
         ).toEqual([["Paul Verhoeven"]]);
         expect(
             new Set(
-                await db.query(
+                query(
                     {
                         find: ["?attr", "?value"],
                         where: [[200, "?attr", "?value"]],
-                    }
+                    },
+                    db
                 )
             )
         ).toEqual(
@@ -120,7 +119,7 @@ describe("async sqlite tests", () => {
         );
         expect(
             new Set(
-                await db.query(
+                query(
                     {
                         find: ["?directorName", "?movieTitle"],
                         where: [
@@ -130,7 +129,8 @@ describe("async sqlite tests", () => {
                             ["?movieId", "movie/director", "?directorId"],
                             ["?directorId", "person/name", "?directorName"],
                         ],
-                    }
+                    },
+                    db
                 )
             )
         ).toEqual(
@@ -144,36 +144,19 @@ describe("async sqlite tests", () => {
         );
     });
 
-    // function onlyUnique(value, index, self) {
-    //     return self.indexOf(value) === index;
-    // }
-    //
-    // test("getUniqueAttributes", () => {
-    //     let res = query({
-    //         find: ["?attr"],
-    //         where: [
-    //             ["?any1", "?attr", "?any2"]
-    //         ]
-    //     }, db);
-    //     console.log(res.flat().filter(onlyUnique));
-    // })
-    //
-    //
-    // test("simple query", async () => {
-    //
-    //     const db = await open({
-    //         filename: 'test.db',
-    //         driver: sqlite3Driver.Database
-    //     });
-    //
-    //     let res = await db.all('SELECT * from "datoms" WHERE e = ?', 100);
-    //     //                                               slice removes transaction
-    //     let data = res.map(datom => Object.values(datom).slice(0, 3))
-    //
-    //     expect(data).toEqual([
-    //         [100, 'person/name', 'James Cameron'],
-    //         [100, 'person/born', '1954-08-16T00:00:00Z']
-    //     ])
-    // });
+    function onlyUnique(value, index, self) {
+        return self.indexOf(value) === index;
+    }
+
+    test("getUniqueAttributes", () => {
+        let res = query({
+            find: ["?attr"],
+            where: [
+                ["?any1", "?attr", "?any2"]
+            ]
+        }, db);
+        console.log(res.flat().filter(onlyUnique));
+    })
+
 })
 
