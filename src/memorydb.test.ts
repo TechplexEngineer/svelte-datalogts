@@ -1,6 +1,6 @@
 import relevantTriples from "./exampleTriples";
-import {matchPattern, matchPart} from ".";
 import {createDB, query, querySingle, queryWhere} from "./memoryDB";
+import {matchPart, matchPattern} from "./utils";
 
 const db = createDB(relevantTriples);
 

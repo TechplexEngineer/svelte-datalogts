@@ -1,33 +1,16 @@
-import {matchPattern, matchPart} from ".";
-import DatalogDB from "./datalogDB";
-// import sqlite3Driver from 'sqlite3'
-// import {open} from 'sqlite'
-import relevantTriples from "./exampleTriples";
+import DatalogDB from "./datalogDB.js";
+import exampleTriples from "./exampleTriples";
 
-// test("simple query", async () => {
-//
-//     const db = await open({
-//         filename: 'test.db',
-//         driver: sqlite3Driver.Database
-//     });
-//
-//     let res = await db.all('SELECT * from "datoms" WHERE e = ?', 100);
-//     //                                               slice removes transaction
-//     let data = res.map(datom => Object.values(datom).slice(0, 3))
-//
-//     expect(data).toEqual([
-//         [100, 'person/name', 'James Cameron'],
-//         [100, 'person/born', '1954-08-16T00:00:00Z']
-//     ])
-// });
+let db; //:DatalogDB;
 
-let db;
 describe("async sqlite tests", () => {
+
     beforeAll(async () => {
         db = new DatalogDB("test.db");
         await db.open();
+        await db.truncate();
+        await db.loadDatoms(exampleTriples);
     });
-
 
     test("querySingle - find movies with movie/year of 1987", async () => {
         expect(await db.querySingle(
@@ -37,6 +20,15 @@ describe("async sqlite tests", () => {
             {"?movieId": 202},
             {"?movieId": 203},
             {"?movieId": 204},
+        ]);
+    });
+
+    test("querySingle - find movieId for Terminator", async () => {
+        expect(await db.querySingle(
+            [ '?movieId', 'movie/title', 'The Terminator' ],
+            {}
+        )).toEqual([
+            {"?movieId": 200}
         ]);
     });
 

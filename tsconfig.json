@@ -1,11 +1,16 @@
 {
   "compilerOptions": {
+    "baseUrl": "src",
     "target": "es2017",
-    "module": "ES2022",
+    "module": "ESNext",
     "lib": [
       "esnext"
     ],
     "moduleResolution": "node",
     "esModuleInterop": true
+  },
+  "ts-node": {
+    // Tell ts-node CLI to install the --loader automatically, explained below
+    "esm": true
   }
 }
