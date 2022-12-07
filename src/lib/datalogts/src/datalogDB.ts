@@ -8,33 +8,31 @@ import {
 import sqlite3Driver from 'sqlite3';
 import {open} from 'sqlite';
 import type {Database} from 'sqlite';
-import {Datom, ResultContext, SearchContext} from "@/datom";
-import datoms from "@/exampleTriples";
+import {Datom, DatomPart, ResultContext, SearchContext} from "./datom";
 
 class DatalogDB {
 
     private sqlDb: Database = null;
     private readonly dbFile: string;
 
-    constructor(dbFile = "test.db") {
+    private constructor(dbFile = "test.db") {
         this.dbFile = dbFile;
     }
 
-    /**
-     * Prepare the database for other operations
-     */
-    public async open() {
-        if (this.sqlDb != null) {
-            throw new Error("Database is already opened");
-        }
-        this.sqlDb = await open({
-            filename: this.dbFile,
+    public static async create(dbFile = "test.db") {
+        const db = new DatalogDB(dbFile);
+
+        db.sqlDb = await open({
+            filename: db.dbFile,
             driver: sqlite3Driver.Database
         });
 
         //@todo need migration
-        await this.createTables();
+        await db.createTables();
+
+        return db;
     }
+
 
     /**
      * Remove all data from the database
@@ -88,18 +86,31 @@ class DatalogDB {
         }
     }
 
-    public async query({find, where}: { find: string[], where: Datom[] }): Promise<Array<ResultContext>> {
+    public async query({find, where, context, options}: { find: string[], where: Datom[], context?: SearchContext,options?: {limit?:number, offset?:number} }): Promise<Array<DatomPart[]>> {
         if (this.sqlDb == null) {
             throw new Error("Must open database before it can be queried");
         }
-        const contexts = await this.queryWhere(where);
-        return contexts.map((context) => actualize(context, find));
+        const contexts = await this.queryWhere(where, context);
+        let matches = contexts.map((context) => actualize(context, find));
+
+        const offset = options?.offset ?? 0;
+        const limit = options?.limit ?? -1; //-1 means last element
+
+        const end = limit >= 0 ? limit+offset : -1;
+
+        if (offset == 0 && end == -1) {
+            // nothing to do
+        } else {
+            matches = matches.slice(offset, end)
+        }
+
+        return matches; //@todo Datom[]
     }
 
     private async queryWhere(patterns: Datom[], ctx: SearchContext = {}): Promise<Array<ResultContext>> {
         let contexts = [ctx];
         for (const pattern of patterns) {
-            let res = await Promise.all(contexts.map(async (context) => {
+            const res = await Promise.all(contexts.map(async (context) => {
                 return await this.querySingle(pattern, context);
             }));
             contexts = res.flat()
@@ -122,22 +133,22 @@ class DatalogDB {
     private async relevantTriples(pattern: Datom): Promise<Datom[]> {
         const [id, attribute, value] = pattern;
         if (!isVariable(id)) {
-            let res = await this.sqlDb.all('SELECT * from "datoms" WHERE e = ?', id);
+            const res = await this.sqlDb.all('SELECT * from "datoms" WHERE e = ?', id);
             // slice throws away the transaction portion of the result
             return res.map(datom => Object.values(datom).slice(0, 3) as Datom);
         }
         if (!isVariable(attribute)) {
-            let res = await this.sqlDb.all('SELECT * from "datoms" WHERE a = ?', attribute);
+            const res = await this.sqlDb.all('SELECT * from "datoms" WHERE a = ?', attribute);
             // slice throws away the transaction portion of the result
             return res.map(datom => Object.values(datom).slice(0, 3) as Datom);
         }
         if (!isVariable(value)) {
-            let res = await this.sqlDb.all('SELECT * from "datoms" WHERE v = ?', value);
+            const res = await this.sqlDb.all('SELECT * from "datoms" WHERE v = ?', value);
             // slice throws away the transaction portion of the result
             return res.map(datom => Object.values(datom).slice(0, 3) as Datom);
         }
         console.log("Falling Back to querying ALL Datoms");
-        let res = await this.sqlDb.all('SELECT * from "datoms"');
+        const res = await this.sqlDb.all('SELECT * from "datoms"');
         // slice throws away the transaction portion of the result
         return res.map(datom => Object.values(datom).slice(0, 3) as Datom);
     }

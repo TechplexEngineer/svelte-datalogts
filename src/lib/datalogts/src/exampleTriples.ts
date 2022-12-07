@@ -1,4 +1,7 @@
-export default [
+import {Datom} from "./datom";
+
+
+const exampleTriples: Datom[] = [
   [100, "person/name", "James Cameron"],
   [100, "person/born", "1954-08-16T00:00:00Z"],
   [101, "person/name", "Arnold Schwarzenegger"],
@@ -236,3 +239,5 @@ export default [
   [219, "movie/cast", 112],
   [219, "movie/cast", 149],
 ];
+
+export default exampleTriples;

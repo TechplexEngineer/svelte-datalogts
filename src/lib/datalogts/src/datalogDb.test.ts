@@ -1,18 +1,18 @@
 import DatalogDB from "./datalogDB.js";
 import exampleTriples from "./exampleTriples";
+import {onlyUnique} from "./utils";
 
 let db; //:DatalogDB;
 
-describe("async sqlite tests", () => {
+beforeAll(async () => {
+    db = await DatalogDB.create("test.db");
+    await db.truncate();
+    await db.loadDatoms(exampleTriples);
+});
 
-    beforeAll(async () => {
-        db = new DatalogDB("test.db");
-        await db.open();
-        await db.truncate();
-        await db.loadDatoms(exampleTriples);
-    });
+describe("querySingle", () => {
 
-    test("querySingle - find movies with movie/year of 1987", async () => {
+    test("find movies with movie/year of 1987", async () => {
         expect(await db.querySingle(
             ["?movieId", "movie/year", 1987],
             {}
@@ -23,16 +23,18 @@ describe("async sqlite tests", () => {
         ]);
     });
 
-    test("querySingle - find movieId for Terminator", async () => {
+    test("find movieId for Terminator", async () => {
         expect(await db.querySingle(
-            [ '?movieId', 'movie/title', 'The Terminator' ],
+            ['?movieId', 'movie/title', 'The Terminator'],
             {}
         )).toEqual([
             {"?movieId": 200}
         ]);
     });
+});
 
-    test("queryWhere - Find the director of the terminator movie", async () => {
+describe("queryWhere", () => {
+    test("Find the director of the terminator movie", async () => {
         expect(
             await db.queryWhere(
                 [
@@ -50,8 +52,9 @@ describe("async sqlite tests", () => {
             },
         ]);
     });
-
-    test("query", async () => {
+});
+describe("query", () => {
+    test("Find director of `The Terminator`", async () => {
         expect(
             await db.query(
                 {
@@ -66,7 +69,7 @@ describe("async sqlite tests", () => {
         ).toEqual([["James Cameron"]]);
     });
 
-    test("play", async () => {
+    test("Find year Alien was released", async () => {
         expect(
             await db.query(
                 {
@@ -78,6 +81,8 @@ describe("async sqlite tests", () => {
                 }
             )
         ).toEqual([[1979]]);
+    });
+    test("Find the director of `RoboCop`", async () => {
         expect(
             await db.query(
                 {
@@ -90,6 +95,8 @@ describe("async sqlite tests", () => {
                 }
             )
         ).toEqual([["Paul Verhoeven"]]);
+    });
+    test("Find all attributes and values of entity `200`", async () => {
         expect(
             new Set(
                 await db.query(
@@ -110,6 +117,8 @@ describe("async sqlite tests", () => {
                 ["movie/sequel", 207],
             ])
         );
+    });
+    test("Find director and title of all movies with `Arnold Schwarzenegger`", async () => {
         expect(
             new Set(
                 await db.query(
@@ -135,37 +144,80 @@ describe("async sqlite tests", () => {
             ])
         );
     });
+    test("Find entity attribute and value, limit 2 no offset", async () => {
+        expect(
+            new Set(
+                await db.query(
+                    {
+                        find: ["?entity", "?attr", "?value"],
+                        where: [["?entity", "?attr", "?value"]],
+                        options: {
+                            offset: 0,
+                            limit: 2
+                        }
+                    }
+                )
+            )
+        ).toEqual(
+            new Set([
+                [100, "person/name", "James Cameron"],
+                [100, "person/born", "1954-08-16T00:00:00Z"]
+            ])
+        );
+    });
+    test("Find entity attribute and value, limit 0, offset 0", async () => {
+        expect(
+            new Set(
+                await db.query(
+                    {
+                        find: ["?entity", "?attr", "?value"],
+                        where: [["?entity", "?attr", "?value"]],
+                        options: {
+                            offset: 0,
+                            limit: 0
+                        }
+                    }
+                )
+            )
+        ).toEqual(
+            new Set([])
+        );
+    });
 
-    // function onlyUnique(value, index, self) {
-    //     return self.indexOf(value) === index;
-    // }
-    //
-    // test("getUniqueAttributes", () => {
-    //     let res = query({
-    //         find: ["?attr"],
-    //         where: [
-    //             ["?any1", "?attr", "?any2"]
-    //         ]
-    //     }, db);
-    //     console.log(res.flat().filter(onlyUnique));
-    // })
-    //
-    //
-    // test("simple query", async () => {
-    //
-    //     const db = await open({
-    //         filename: 'test.db',
-    //         driver: sqlite3Driver.Database
-    //     });
-    //
-    //     let res = await db.all('SELECT * from "datoms" WHERE e = ?', 100);
-    //     //                                               slice removes transaction
-    //     let data = res.map(datom => Object.values(datom).slice(0, 3))
-    //
-    //     expect(data).toEqual([
-    //         [100, 'person/name', 'James Cameron'],
-    //         [100, 'person/born', '1954-08-16T00:00:00Z']
-    //     ])
-    // });
-})
+    test("getUniqueAttributes", async () => {
+        expect((await db.query({
+            find: ["?attr"],
+            where: [
+                ["?any1", "?attr", "?any2"]
+            ]
+        }, db)).flat().filter(onlyUnique)).toEqual([
+            'person/name',
+            'person/born',
+            'person/death',
+            'movie/title',
+            'movie/year',
+            'movie/director',
+            'movie/cast',
+            'movie/sequel',
+            'trivia'
+        ]);
+    });
+
+// test("simple query", async () => {
+//
+//     const db = await open({
+//         filename: 'test.db',
+//         driver: sqlite3Driver.Database
+//     });
+//
+//     let res = await db.all('SELECT * from "datoms" WHERE e = ?', 100);
+//     //                                               slice removes transaction
+//     let data = res.map(datom => Object.values(datom).slice(0, 3))
+//
+//     expect(data).toEqual([
+//         [100, 'person/name', 'James Cameron'],
+//         [100, 'person/born', '1954-08-16T00:00:00Z']
+//     ])
+// });
+});
 

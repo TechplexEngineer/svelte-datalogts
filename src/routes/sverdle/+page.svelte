@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { confetti } from '@neoconfetti/svelte';
 	import { enhance } from '$app/forms';
-	import type { PageData, ActionData } from './$types';
+	import type { PageData, ActionData } from '.svelte-kit/types/src/routes/sverdle/$types'; //'./$types';
 
 	export let data: PageData;
 

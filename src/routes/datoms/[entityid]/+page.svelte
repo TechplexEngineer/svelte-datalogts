@@ -16,13 +16,7 @@
 
 <div class="text-column">
 
-	<ul>
-		{#each datoms as datom}
-		<li><a href="datoms/{datom}">{datom}</a></li>
-		{/each}
-	</ul>
-
-	<table>
+	<table class="table table-striped">
 		<thead>
 		<tr>
 			<th>Entity</th>

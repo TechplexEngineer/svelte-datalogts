@@ -33,8 +33,12 @@ export function matchPattern(pattern: Datom, triple: Datom, context: SearchConte
   }, context);
 }
 
-export function actualize(context, find) {
+export function actualize(context: SearchContext, find: string[]) {
     return find.map((findPart) => {
         return isVariable(findPart) ? context[findPart] : findPart;
     });
+}
+
+export function onlyUnique(value, index, self) {
+    return self.indexOf(value) === index;
 }
