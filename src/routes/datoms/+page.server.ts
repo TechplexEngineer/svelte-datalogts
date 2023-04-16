@@ -34,11 +34,11 @@ export const load: PageServerLoad = async () => {
         // }
     })
 
-    let reduced = datoms.reduce<{[key:DatomPart]: SearchContext}>((previousValue, currentValue) => {
+    let reduced = datoms.reduce<{data: {[key:DatomPart]: SearchContext}, attrs: Set<string>}>((accum, currentValue) => {
 
-        if (previousValue == null) {
-            previousValue = {};
-        }
+        // if (accum == null) {
+        //     accum = {};
+        // }
         if (currentValue == null) {
             currentValue = ["null","null","null"]
         }
@@ -46,19 +46,25 @@ export const load: PageServerLoad = async () => {
         const entity = currentValue[0];
         const attribute = currentValue[1];
         const value = currentValue[2];
-        if (previousValue[entity] == null) {
-            previousValue[entity] = {};
+
+        if (accum.data[entity] == null) {
+            accum.data[entity] = {id: entity};
         }
-        previousValue[entity][attribute] = value;
-        return previousValue;
-    }, {})
+        accum.data[entity][attribute] = value;
+        accum.attrs.add(attribute);
+        return accum;
+    }, {
+        data:{},
+        attrs: new Set()
+    })
     //     .filter((value, index, array) => {
     //     return array.indexOf(value[0]) === index;
     // })
     // datoms = datoms.flat().filter(onlyUnique)
-    console.log('Datoms found', reduced);
+    // console.log('Datoms found', reduced);
 
     return {
-        datoms
+        datoms: reduced.data,
+        attrs: reduced.attrs
     }
 }

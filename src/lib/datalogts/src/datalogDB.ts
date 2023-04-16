@@ -119,9 +119,13 @@ class DatalogDB {
     }
 
     private async querySingle(pattern: Datom, context: SearchContext) {
-        return (await this.relevantTriples(pattern))
-            .map((triple) => matchPattern(pattern, triple, context))
-            .filter((x) => x);
+        console.log("querySingle context", context);
+        let relevant = (await this.relevantTriples(pattern, context));
+        console.log("querySingle relevant", relevant);
+        let matching = relevant.map((triple) => matchPattern(pattern, triple, context));
+        return matching; //.filter((x) => x);
+
+
     }
 
     /**
@@ -130,7 +134,7 @@ class DatalogDB {
      * @param pattern
      * @private
      */
-    private async relevantTriples(pattern: Datom): Promise<Datom[]> {
+    private async relevantTriples(pattern: Datom, context?: SearchContext): Promise<Datom[]> {
         const [id, attribute, value] = pattern;
         if (!isVariable(id)) {
             const res = await this.sqlDb.all('SELECT * from "datoms" WHERE e = ?', id);

@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({params}) => {
     datoms = await db.query({
         find: ["?entity", "?attr", "?value"],
         where: [
-            ["?entity", "?attr", "?value"]
+            [parseInt(params.entityid), "?attr", "?value"]
         ],
         context: {
             "?entity": parseInt(params.entityid)
@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({params}) => {
         }
     })
 
-    console.log('Datoms found', datoms);
+    // console.log('Datoms found', datoms);
 
     return {
         datoms
