@@ -1,25 +1,26 @@
+import { test, expect } from '@playwright/test';
 import DatalogDB from "./datalogDB.js";
-import exampleTriples from "./exampleTriples";
-import {onlyUnique} from "./utils";
+import exampleTriples from "./exampleTriples.js";
+import { onlyUnique } from "./utils.js";
 
 let db; //:DatalogDB;
 
-beforeAll(async () => {
+test.beforeAll(async () => {
     db = await DatalogDB.create("test.db");
     await db.truncate();
     await db.loadDatoms(exampleTriples);
 });
 
-describe("querySingle", () => {
+test.describe("querySingle", () => {
 
     test("find movies with movie/year of 1987", async () => {
         expect(await db.querySingle(
             ["?movieId", "movie/year", 1987],
             {}
         )).toEqual([
-            {"?movieId": 202},
-            {"?movieId": 203},
-            {"?movieId": 204},
+            { "?movieId": 202 },
+            { "?movieId": 203 },
+            { "?movieId": 204 },
         ]);
     });
 
@@ -28,12 +29,12 @@ describe("querySingle", () => {
             ['?movieId', 'movie/title', 'The Terminator'],
             {}
         )).toEqual([
-            {"?movieId": 200}
+            { "?movieId": 200 }
         ]);
     });
 });
 
-describe("queryWhere", () => {
+test.describe("queryWhere", () => {
     test("Find the director of the terminator movie", async () => {
         expect(
             await db.queryWhere(
@@ -53,7 +54,7 @@ describe("queryWhere", () => {
         ]);
     });
 });
-describe("query", () => {
+test.describe("query", () => {
     test("Find director of `The Terminator`", async () => {
         expect(
             await db.query(
@@ -203,21 +204,21 @@ describe("query", () => {
         ]);
     });
 
-// test("simple query", async () => {
-//
-//     const db = await open({
-//         filename: 'test.db',
-//         driver: sqlite3Driver.Database
-//     });
-//
-//     let res = await db.all('SELECT * from "datoms" WHERE e = ?', 100);
-//     //                                               slice removes transaction
-//     let data = res.map(datom => Object.values(datom).slice(0, 3))
-//
-//     expect(data).toEqual([
-//         [100, 'person/name', 'James Cameron'],
-//         [100, 'person/born', '1954-08-16T00:00:00Z']
-//     ])
-// });
+    // test("simple query", async () => {
+    //
+    //     const db = await open({
+    //         filename: 'test.db',
+    //         driver: sqlite3Driver.Database
+    //     });
+    //
+    //     let res = await db.all('SELECT * from "datoms" WHERE e = ?', 100);
+    //     //                                               slice removes transaction
+    //     let data = res.map(datom => Object.values(datom).slice(0, 3))
+    //
+    //     expect(data).toEqual([
+    //         [100, 'person/name', 'James Cameron'],
+    //         [100, 'person/born', '1954-08-16T00:00:00Z']
+    //     ])
+    // });
 });
 

@@ -1,8 +1,8 @@
 // 2. querySingle
 
 
-import {Datom, SearchContext} from "./datom";
-import {isVariable, matchPattern} from "./utils";
+import type { Datom, SearchContext } from "./datom.js";
+import { isVariable, matchPattern } from "./utils.js";
 
 export function querySingle(pattern: Datom, db, context: SearchContext) {
     return relevantTriples(pattern, db)
@@ -15,7 +15,7 @@ export function querySingle(pattern: Datom, db, context: SearchContext) {
 export function queryWhere(patterns: Datom[], db, ctx: SearchContext = {}) {
     return patterns.reduce(
         (contexts, pattern) => {
-            return  contexts.flatMap((context) => {
+            return contexts.flatMap((context) => {
                 return querySingle(pattern, db, context);
             });
         },
@@ -31,7 +31,7 @@ function actualize(context, find) {
     });
 }
 
-export function query({find, where}: { find: string[], where: Datom[] }, db) {
+export function query({ find, where }: { find: string[], where: Datom[] }, db) {
     const contexts = queryWhere(where, db);
     return contexts.map((context) => actualize(context, find));
 }

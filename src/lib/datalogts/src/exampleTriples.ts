@@ -1,4 +1,4 @@
-import {Datom} from "./datom";
+import type { Datom } from "./datom.js";
 
 
 const exampleTriples: Datom[] = [

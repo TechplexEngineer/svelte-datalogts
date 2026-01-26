@@ -6,9 +6,9 @@ import {
 
 
 import sqlite3Driver from 'sqlite3';
-import {open} from 'sqlite';
-import type {Database} from 'sqlite';
-import {Datom, DatomPart, ResultContext, SearchContext} from "./datom";
+import { open } from 'sqlite';
+import type { Database } from 'sqlite';
+import type { Datom, DatomField, ResultContext, SearchContext } from "./datom.js";
 
 class DatalogDB {
 
@@ -54,39 +54,73 @@ class DatalogDB {
 
     private async createTables() {
         await this.sqlDb.exec(`
+            CREATE TABLE IF NOT EXISTS "transactions" (
+                "id" INTEGER PRIMARY KEY,
+                "metadata" TEXT,
+                "executed_at" TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS "datoms" (
                 "e"  INTEGER NOT NULL,
-                "a"  SMALLINT NOT NULL,
+                "a"  TEXT NOT NULL,
                 "v"  BLOB NOT NULL,
-                "tx" INTEGER NOT NULL
+                "tx" INTEGER NOT NULL,
+                FOREIGN KEY("tx") REFERENCES "transactions"("id")
             );
-        `);
-        await this.sqlDb.run(`
+
+            CREATE INDEX IF NOT EXISTS "idx_datoms_e" ON "datoms" ("e");
+            CREATE INDEX IF NOT EXISTS "idx_datoms_a" ON "datoms" ("a");
+            CREATE INDEX IF NOT EXISTS "idx_datoms_v" ON "datoms" ("v");
+            CREATE INDEX IF NOT EXISTS "idx_datoms_tx" ON "datoms" ("tx");
+
             CREATE TABLE IF NOT EXISTS "schema" (
                 "e"	INTEGER NOT NULL,
-                "a"	SMALLINT NOT NULL,
+                "a"	TEXT NOT NULL,
                 "v"	BLOB NOT NULL
             );
         `);
     }
 
-    public async loadDatoms(datoms: Datom[]) {
+    public async transact(datoms: Datom[], metadata: any = {}) {
         if (this.sqlDb == null) {
-            throw new Error("Must open database before datoms can be loaded");
+            throw new Error("Must open database before transacting");
         }
 
-        let txCounter = 0; //@todo query for most recent transaction
-        for (const datom of datoms) {
-            await this.sqlDb.run(`INSERT INTO "datoms" (e, a, v, tx) VALUES ($e, $a, $v, $tx);`, {
-                $e: datom[0],
-                $a: datom[1],
-                $v: datom[2],
-                $tx: txCounter++
-            });
+        // Microsecond timestamp
+        const txId = Date.now() * 1000;
+        const executedAt = new Date().toISOString();
+
+        await this.sqlDb.run("BEGIN TRANSACTION");
+        try {
+            await this.sqlDb.run(
+                `INSERT INTO "transactions" (id, metadata, executed_at) VALUES (?, ?, ?);`,
+                txId,
+                JSON.stringify(metadata),
+                executedAt
+            );
+
+            for (const datom of datoms) {
+                await this.sqlDb.run(
+                    `INSERT INTO "datoms" (e, a, v, tx) VALUES (?, ?, ?, ?);`,
+                    datom[0],
+                    datom[1],
+                    datom[2],
+                    txId
+                );
+            }
+            await this.sqlDb.run("COMMIT");
+            return txId;
+        } catch (e) {
+            await this.sqlDb.run("ROLLBACK");
+            throw e;
         }
     }
 
-    public async query({find, where, context, options}: { find: string[], where: Datom[], context?: SearchContext,options?: {limit?:number, offset?:number} }): Promise<Array<DatomPart[]>> {
+    public async loadDatoms(datoms: Datom[]) {
+        return this.transact(datoms, { system: "initial_load" });
+    }
+
+    public async query({ find, where, context, options }: { find: string[], where: Datom[], context?: SearchContext, options?: { limit?: number, offset?: number } }): Promise<Array<DatomField[]>> {
         if (this.sqlDb == null) {
             throw new Error("Must open database before it can be queried");
         }
@@ -96,7 +130,7 @@ class DatalogDB {
         const offset = options?.offset ?? 0;
         const limit = options?.limit ?? -1; //-1 means last element
 
-        const end = limit >= 0 ? limit+offset : -1;
+        const end = limit >= 0 ? limit + offset : -1;
 
         if (offset == 0 && end == -1) {
             // nothing to do
@@ -119,9 +153,7 @@ class DatalogDB {
     }
 
     private async querySingle(pattern: Datom, context: SearchContext) {
-        console.log("querySingle context", context);
         let relevant = (await this.relevantTriples(pattern, context));
-        console.log("querySingle relevant", relevant);
         let matching = relevant.map((triple) => matchPattern(pattern, triple, context));
         return matching; //.filter((x) => x);
 
@@ -151,7 +183,6 @@ class DatalogDB {
             // slice throws away the transaction portion of the result
             return res.map(datom => Object.values(datom).slice(0, 3) as Datom);
         }
-        console.log("Falling Back to querying ALL Datoms");
         const res = await this.sqlDb.all('SELECT * from "datoms"');
         // slice throws away the transaction portion of the result
         return res.map(datom => Object.values(datom).slice(0, 3) as Datom);

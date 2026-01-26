@@ -1,16 +1,17 @@
-import relevantTriples from "./exampleTriples";
-import {createDB, query, querySingle, queryWhere} from "./memoryDB";
-import {matchPart, matchPattern} from "./utils";
+import { test, expect } from '@playwright/test';
+import relevantTriples from "./exampleTriples.js";
+import { createDB, query, querySingle, queryWhere } from "./memoryDB.js";
+import { matchPart, matchPattern } from "./utils.js";
 
 const db = createDB(relevantTriples);
 
-describe("memorydb", () => {
+test.describe("memorydb", () => {
     test("matchPart", () => {
-        expect(matchPart("?movieId", 200, {})).toEqual({"?movieId": 200})
+        expect(matchPart("?movieId", 200, {})).toEqual({ "?movieId": 200 })
         expect(matchPart("movie/director", "movie/director", {})).toEqual({})
         expect(
-            matchPart("?directorId", 100, {"?movieId": 200})
-        ).toEqual({"?movieId": 200, "?directorId": 100})
+            matchPart("?directorId", 100, { "?movieId": 200 })
+        ).toEqual({ "?movieId": 200, "?directorId": 100 })
     });
 
     test("matchPattern", () => {
@@ -20,21 +21,21 @@ describe("memorydb", () => {
                 [200, "movie/director", 100],
                 {}
             )
-        ).toEqual({"?movieId": 200, "?directorId": 100});
+        ).toEqual({ "?movieId": 200, "?directorId": 100 });
         expect(
             matchPattern(
                 ["?movieId", "movie/director", "?directorId"],
                 [200, "movie/director", 100],
-                {"?movieId": 202}
+                { "?movieId": 202 }
             )
         ).toEqual(null);
     });
 
     test("querySingle", () => {
         expect(querySingle(["?movieId", "movie/year", 1987], db, {})).toEqual([
-            {"?movieId": 202},
-            {"?movieId": 203},
-            {"?movieId": 204},
+            { "?movieId": 202 },
+            { "?movieId": 203 },
+            { "?movieId": 204 },
         ]);
     });
 
@@ -50,7 +51,7 @@ describe("memorydb", () => {
                 {}
             )
         ).toEqual([
-            {"?movieId": 200, "?directorId": 100, "?directorName": "James Cameron"},
+            { "?movieId": 200, "?directorId": 100, "?directorName": "James Cameron" },
         ]);
     });
 
