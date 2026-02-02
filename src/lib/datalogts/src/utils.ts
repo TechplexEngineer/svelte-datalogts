@@ -27,10 +27,10 @@ export function matchPart(patternPart: DatomField, triplePart: DatomField, conte
  * Check if pattern matches triple with context substitutions
  */
 export function matchPattern(pattern: Datom, triple: Datom, context: SearchContext): ResultContext {
-    return pattern.reduce((context, patternPart, idx) => {
+    return (pattern as DatomField[]).reduce((acc: ResultContext, patternPart, idx) => {
+        if (!acc) return null;
         const triplePart = triple[idx];
-        let res = matchPart(patternPart, triplePart, context);
-        return res;
+        return matchPart(patternPart, triplePart, acc);
     }, context);
 }
 
@@ -40,6 +40,6 @@ export function actualize(context: SearchContext, find: string[]) {
     });
 }
 
-export function onlyUnique(value, index, self) {
+export function onlyUnique(value: any, index: number, self: any[]) {
     return self.indexOf(value) === index;
 }

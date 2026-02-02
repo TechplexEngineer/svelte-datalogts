@@ -1,0 +1,34 @@
+(node:375888) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("file%3A///home/techplex/projects/svelte-datalogts/node_modules/%40playwright/test/lib/experimentalLoader.js", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+  [32m✓[39m  [2m1 [22m[2msrc/lib/datalogts/src/queryParser.test.ts:4:3 › parseHJsonQuery › should parse a basic HJSON query[22m[2m (10ms)[22m
+  [31m✘[39m  [2m2 [22m[31msrc/lib/datalogts/src/queryParser.test.ts:17:3 › parseHJsonQuery › should parse HJSON with comments and without quotes[39m[2m (3ms)[22m
+  [32m✓[39m  [2m3 [22m[2msrc/lib/datalogts/src/queryParser.test.ts:31:3 › parseHJsonQuery › should parse options[22m[2m (11ms)[22m
+  [32m✓[39m  [2m4 [22m[2msrc/lib/datalogts/src/queryParser.test.ts:50:3 › parseHJsonQuery › should throw error on invalid HJSON[22m[2m (3ms)[22m
+  [32m✓[39m  [2m5 [22m[2msrc/lib/datalogts/src/queryParser.test.ts:54:3 › parseHJsonQuery › should throw error if find is missing[22m[2m (1ms)[22m
+  [32m✓[39m  [2m6 [22m[2msrc/lib/datalogts/src/queryParser.test.ts:58:3 › parseHJsonQuery › should throw error if where is missing[22m[2m (2ms)[22m
+
+
+[31m  1) src/lib/datalogts/src/queryParser.test.ts:17:3 › parseHJsonQuery › should parse HJSON with comments and without quotes [39m
+
+    Error: Failed to parse HJSON query: Found a punctuator character '}' when expecting a quoteless string (check your syntax) at line 7,9 >>>        }
+             ...
+
+      25 |                 ["?e", person/name, "?name"] // No quotes on attribute
+      26 |             ]
+    > 27 |         }
+         |          ^
+      28 |         `;
+      29 |         const query = parseHJsonQuery(queryStr);
+      30 |         expect(query.find).toEqual(["?name"]);
+
+    [2m    at parseHJsonQuery (file:///home/techplex/projects/svelte-datalogts/src/lib/datalogts/src/queryParser.ts:29:11)[22m
+    [2m    at file:///home/techplex/projects/svelte-datalogts/src/lib/datalogts/src/queryParser.test.ts:27:19[22m
+
+
+[31m  1 failed[39m
+[31m    src/lib/datalogts/src/queryParser.test.ts:17:3 › parseHJsonQuery › should parse HJSON with comments and without quotes [39m
+[32m  5 passed[39m[2m (1s)[22m

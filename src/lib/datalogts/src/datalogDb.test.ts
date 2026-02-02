@@ -219,6 +219,39 @@ test.describe("query", () => {
     //         [100, 'person/name', 'James Cameron'],
     //         [100, 'person/born', '1954-08-16T00:00:00Z']
     //     ])
-    // });
+    test("deleteEntity should remove all datoms for an entity", async () => {
+        const entityId = 100; // James Cameron
+        // Verify entity exists
+        const before = await db.query({
+            find: ["?a", "?v"],
+            where: [[entityId, "?a", "?v"]]
+        });
+        expect(before.length).toBeGreaterThan(0);
+
+        // Delete entity
+        await db.deleteEntity(entityId);
+
+        // Verify entity is gone
+        const after = await db.query({
+            find: ["?a", "?v"],
+            where: [[entityId, "?a", "?v"]]
+        });
+        expect(after.length).toBe(0);
+    });
+
+    test("queryHJson should find director of `RoboCop`", async () => {
+        const queryStr = `
+        {
+            find: ["?directorName"]
+            where: [
+                ["?movieId", "movie/title", "RoboCop"]
+                ["?movieId", "movie/director", "?directorId"]
+                ["?directorId", "person/name", "?directorName"]
+            ]
+        }
+        `;
+        expect(await db.queryHJson(queryStr)).toEqual([["Paul Verhoeven"]]);
+    });
 });
+
 
