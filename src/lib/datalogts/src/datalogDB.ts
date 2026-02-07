@@ -321,6 +321,14 @@ class DatalogDB {
         // slice throws away the transaction portion of the result
         return res.map(datom => Object.values(datom).slice(0, 3) as Datom);
     }
+
+    public async getAllDatoms(): Promise<Datom[]> {
+        if (this.sqlDb == null) {
+            throw new Error("Must open database before it can be queried");
+        }
+        const res = await this.sqlDb.all('SELECT e, a, v from "datoms"');
+        return res.map(row => [row.e, row.a, row.v] as Datom);
+    }
 }
 
 export default DatalogDB;

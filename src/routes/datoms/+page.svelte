@@ -58,7 +58,15 @@
 
 	<section class="mb-4">
 		<h2>HJSON Query</h2>
-		<form method="POST" action="?/query" use:enhance>
+		<form
+			method="POST"
+			action="?/query"
+			use:enhance={() => {
+				return async ({ update }) => {
+					await update({ reset: false });
+				};
+			}}
+		>
 			<div class="form-group mb-2">
 				<label for="query">Query (HJSON format)</label>
 				<textarea
